@@ -1,0 +1,53 @@
+name: Scrape GA Property Tax Bill
+
+on:
+  workflow_dispatch:
+    inputs:
+      parcel_id:
+        description: "Map/Parcel/Property ID"
+        required: true
+        type: string
+
+      tax_year:
+        description: "Tax year"
+        required: true
+        type: string
+
+      callback_url:
+        description: "n8n Webhook URL"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run scraper
+        run: |
+          python run_and_callback.py \
+            --parcel-id "${{ inputs.parcel_id }}" \
+            --tax-year "${{ inputs.tax_year }}" \
+            --callback-url "${{ inputs.callback_url }}"
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-result
+          path: result.json
+          if-no-files-found: ignore
